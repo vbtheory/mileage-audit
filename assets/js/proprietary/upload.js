@@ -108,7 +108,7 @@ var processFile = function(e) {
     idCounter = 0;
     loadingMore = false;
     loadMoreWhenMoreAvailable = false;
-    filters = {};
+    filters = { enabled: false };
 
     Object.keys(FILTERABLES).forEach(filterable => {
         var filterableId = FILTERABLES[filterable];
@@ -131,7 +131,7 @@ var processFile = function(e) {
     var headerLine = unprocessedLines.shift();
     cellSeparator = headerLine.split(',').length > headerLine.split(';').length ? ',':';'; 
     
-    readHeader(headerLine);
+    processHeader(headerLine);
     startProcessingLines(true);
     startApiQueue();
     
@@ -176,14 +176,14 @@ var startProcessingLines = function(displayLines, loadAll){
     }, DEFERRED_LOADING_SLEEP);
 }
 
-var readHeader = function(line) {
+var processHeader = function(line) {
     line = line.split(cellSeparator);
     
     $('.table-container').html('<table><thead><tr></tr></thead><tbody></tbody></table>');
     var headerElement = $('.table-container').find('table thead tr');
 
     line.forEach(function(cell){
-        console.log("a-a-a-a-a-a-a-a: readHeader -> cell", cell);
+        console.log("a-a-a-a-a-a-a-a: processHeader -> cell", cell);
         
         if(VISIBLE_COLUMNS.includes(cell.toLowerCase())) {
             headerElement.append('<th>' + cell + '</th>');
@@ -262,14 +262,22 @@ var loadMore = function(){
     }
 
     var newLines = "";
-    
-    for (var index = 0; index < Math.min(linesToDisplay.length, ELEMENTS_PER_PAGE); index++) {
+    var count = 0;
+    var max = Math.min(linesToDisplay.length, ELEMENTS_PER_PAGE);
+
+    for (var index = 0; index < linesToDisplay.length; index++) {
         var lineId = linesToDisplay.shift();
         var lineObject = uploadedData[lineId];
 
-        if(!lineObject) return;
+        if(!lineObject) continue;
         
+        if(filters.enabled){
+            if(!filterLine(lineObject._props.id)) continue;
+        }
+
         newLines+=generateLineHTML(lineObject);
+        count++;
+        if(count == max) break;
     }
 
     if(linesToDisplay.length <= DEFERRED_LOADING_START_TRESHOLD) startProcessingLines(false, false);
@@ -280,27 +288,23 @@ var loadMore = function(){
     loadingMore = false;
 }
 
-//TODO: filter data as it loads
 var filterData = function(){
     console.time("filterData");
     // Stop the deferred loader & force load the rest of the data if any left
-    stopDeferredLoading = true;
-    startProcessingLines(false, true);
     $('.table-container').find('table tbody').html('');
-    linesToDisplay = [];
+    linesToDisplay = Object.keys(uploadedData);
     apiQueue = [];
     loadingMore = false;
-    loadMoreWhenMoreAvailable = false;
+    loadMoreWhenMoreAvailable = linesToDisplay.length == 0;
     
     filters = {
         status: $('#status-filter').val(),
         category: $('#category-filter').val(),
     };
-    
-    Object.keys(uploadedData).forEach(function(id){
-        if(filterLine(id)) linesToDisplay.push(line._props.id);
-    });
 
+    if(!filters.status && !filters.category) filters.enabled = false;
+    else filters.enabled = true;
+    
     loadMore();
     console.timeEnd('filterData');
 }
@@ -311,8 +315,6 @@ var filterLine = function(id){
 
     if(line._props.status && filters.status && line._props.status != filters.status) valid = false;
     if(filters.category && line.ExpenseCategoryName != filters.category) valid = false;
-
-    if(valid) 
 
     return valid;
 }
@@ -352,6 +354,7 @@ var processApiQueue = function(){
         cache: false,
         data: data,
         success: function(result) {
+            console.log("a-a-a-a-a-a-a-a: processApiQueue -> result", result);
             if(result && JSON.parse(result)){
                 result = JSON.parse(result);
 
@@ -373,7 +376,7 @@ var processApiQueue = function(){
         error: function(error){
             if(!uploadedData[id]._props.retries) uploadedData[id]._props.retries = 0;
             uploadedData[id]._props.retries ++;
-            console.log("a-a-a-a-a-a-a-a: processApiQueue -> uploadedData[id]._props.retries", uploadedData[id]._props.retries);
+            console.log("a-a-a-a-a-a-a-a: processApiQueue -> uploadedData[id]._props.retries", id, uploadedData[id]._props.retries);
 
             if(uploadedData[id]._props.retries < 5) apiQueue.push(id);
             else uploadedData[id]._props.ignore = true;

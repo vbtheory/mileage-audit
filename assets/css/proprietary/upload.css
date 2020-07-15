@@ -44,21 +44,13 @@ th{
 }
 
 tr.row-ok{
-    background-color: rgb(86, 245, 179, 0.4);
+    background-color: rgb(86, 245, 179, 0.5);
     transition: background-color 0.2s;
 }
 
 tr.row-nok{
-    background-color: rgba(245, 141, 122, 0.4);
-    transition: background-color 0.2s;
-}
-
-tr.row-ok:hover{
-    background-color: rgb(86, 245, 179, 0.5);
-}
-
-tr.row-nok:hover{
     background-color: rgba(245, 141, 122, 0.5);
+    transition: background-color 0.2s;
 }
 
 table{
