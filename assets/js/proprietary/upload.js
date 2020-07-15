@@ -238,7 +238,8 @@ var generateLineHTML = function(lineObject) {
     row += '</tr>';
     
     var categoryName = lineObject[TARGET_CATEGORY_COLUMN];
-    if(!lineObject._props.status && categoryName && categoryName.toLowerCase() == TARGET_PRODUCT_NAME) {
+    if(!lineObject._props.status && categoryName 
+        && categoryName.toLowerCase() == TARGET_PRODUCT_NAME && !lineObject._props.ignore) {
         apiQueue.push(lineObject._props.id);
     }
 
@@ -322,7 +323,6 @@ var processApiQueue = function(){
     }
         
     var id = apiQueue.shift();
-    console.log("a-a-a-a-a-a-a-a: processApiQueue -> id", id);
     var lineObject = uploadedData[id];
 
     if(!lineObject){
@@ -330,13 +330,12 @@ var processApiQueue = function(){
     }
 
     var data = {
-        DepartmentID: lineObject['DepartmentID'],
-        Quantity: lineObject['Quantity'],
-        GrossamountCC: lineObject['GrossamountCC'],
-        CountryID: lineObject['CountryID'],
-        ControllerID: lineObject['ControllerID']
+        DepartmentID: parseInt(lineObject['DepartmentID']),
+        Quantity: parseInt(lineObject['Quantity']),
+        GrossamountCC: parseFloat(lineObject['GrossamountCC']),
+        CountryID: parseInt(lineObject['CountryID']),
+        ControllerID: parseInt(lineObject['ControllerID'])
     };
-    console.log("a-a-a-a-a-a-a-a: processApiQueue -> data", data);
 
     $.ajax({
         url:'https://ml-audit.herokuapp.com/predict',
@@ -363,6 +362,12 @@ var processApiQueue = function(){
             processApiQueue();
         },
         error: function(error){
+            if(!uploadedData[id]._props.retries) uploadedData[id]._props.retries = 0;
+            uploadedData[id]._props.retries ++;
+            console.log("a-a-a-a-a-a-a-a: processApiQueue -> uploadedData[id]._props.retries", uploadedData[id]._props.retries);
+
+            if(uploadedData[id]._props.retries < 5) apiQueue.push(id);
+            else uploadedData[id]._props.ignore = true;
         console.log("a-a-a-a-a-a-a-a: processApiQueue -> error", error);
             processApiQueue();
         }
