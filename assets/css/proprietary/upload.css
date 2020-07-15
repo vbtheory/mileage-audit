@@ -44,12 +44,12 @@ th{
 }
 
 tr.row-ok{
-    background-color: rgb(86, 245, 179, 0.25);
+    background-color: rgb(86, 245, 179, 0.4);
     transition: background-color 0.2s;
 }
 
 tr.row-nok{
-    background-color: rgba(245, 141, 122, 0.25);
+    background-color: rgba(245, 141, 122, 0.4);
     transition: background-color 0.2s;
 }
 

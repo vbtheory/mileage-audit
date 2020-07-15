@@ -5,7 +5,8 @@ const FILTERABLES = {
 const VISIBLE_COLUMNS = [
     'employeeid',
     'firstname',
-    'lastnameitemid',
+    'lastname',
+    'itemid',
     'transactionid',
     'reportid',
     'reportreference',
@@ -278,6 +279,7 @@ var loadMore = function(){
     loadingMore = false;
 }
 
+//TODO: filter data as it loads
 var filterData = function(){
     console.time("filterData");
     // Stop the deferred loader & force load the rest of the data if any left
@@ -295,17 +297,23 @@ var filterData = function(){
     };
     
     Object.keys(uploadedData).forEach(function(id){
-        var line = uploadedData[id];
-        var valid = true;
-
-        if(line._props.status && filters.status && line._props.status != filters.status) valid = false;
-        if(filters.category && line.ExpenseCategoryName != filters.category) valid = false;
-
-        if(valid) linesToDisplay.push(line._props.id);
-    })
+        if(filterLine(id)) linesToDisplay.push(line._props.id);
+    });
 
     loadMore();
     console.timeEnd('filterData');
+}
+
+var filterLine = function(id){
+    var line = uploadedData[id];
+    var valid = true;
+
+    if(line._props.status && filters.status && line._props.status != filters.status) valid = false;
+    if(filters.category && line.ExpenseCategoryName != filters.category) valid = false;
+
+    if(valid) 
+
+    return valid;
 }
 
 var startApiQueue =  function(){
@@ -343,12 +351,12 @@ var processApiQueue = function(){
         cache: false,
         data: data,
         success: function(result) {
-            console.log("a-a-a-a-a-a-a-a: processApiQueue -> result", result);
+            if(result && JSON.parse(result)){
+                result = JSON.parse(result);
 
-            if(result){
-                var val = result["Prediction"];
+                var val = parseInt(result["Prediction"]);
                 uploadedData[id]._props.val = val;
-                uploadedData[id]._props.status = val < 0.38 ?'nok':'ok';
+                uploadedData[id]._props.status = val == 0 ?'nok':'ok';
                 
                 var row = $('.uploaded-data-line[data-id="' + id + '"]');
                 row.addClass('row-' + uploadedData[id]._props.status);
@@ -368,7 +376,7 @@ var processApiQueue = function(){
 
             if(uploadedData[id]._props.retries < 5) apiQueue.push(id);
             else uploadedData[id]._props.ignore = true;
-        console.log("a-a-a-a-a-a-a-a: processApiQueue -> error", error);
+            console.log("a-a-a-a-a-a-a-a: processApiQueue -> error", error);
             processApiQueue();
         }
     })
