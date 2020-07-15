@@ -103,6 +103,7 @@ var processFile = function(e) {
     uploadedDataHeader = [];
     linesToDisplay = [];
     apiQueue = [];
+    apiQueueDone = true;
     displayedLinesCount = 0;
     idCounter = 0;
     loadingMore = false;
