@@ -31,29 +31,29 @@
     cursor: pointer;
 }
 
-td, th {
+.table-container td, .table-container th {
     padding: 5px;
     border: 1px solid #0D1426 !important;
     text-align: center;
 }
 
-th{
+.table-container th{
     background-color: #4E58DE;
     color: white;
     font-weight: 700;
 }
 
-tr.row-ok{
+.table-container tr.row-ok{
     background-color: rgb(86, 245, 179, 0.5);
     transition: background-color 0.2s;
 }
 
-tr.row-nok{
+.table-container tr.row-nok{
     background-color: rgba(245, 141, 122, 0.5);
     transition: background-color 0.2s;
 }
 
-table{
+.table-container table{
     min-width: 100%;
 }
 
@@ -81,4 +81,26 @@ table{
     max-height: calc(100vh - 20px);
     margin: 10px 0;
     overflow: hidden scroll;
+}
+
+.stats-table-container {
+    margin: 5px 10px;
+}
+
+.stats-table td, .stats-table th {
+    border: black solid 1px;
+    text-align: center;
+    padding: 0 5px;
+}
+
+#header-stat-ok{
+    background: rgb(86, 245, 179, 0.5);
+}
+
+#header-stat-nok{
+    background: rgba(245, 141, 122, 0.5);
+}
+
+#header-stat-pend{
+    background: rgba(177, 177, 177, 0.7);
 }

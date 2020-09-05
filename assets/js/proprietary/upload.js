@@ -22,12 +22,13 @@ const TARGET_CATEGORY_COLUMN = 'ProductName';
 const TARGET_PRODUCT_NAME = 'business mileage';
 const API_BATCH_SIZE = 10;
 const ELEMENTS_PER_PAGE = 100;
-const DEFERRED_LOADING_SIZE = 1000;
+const DEFERRED_LOADING_SIZE = 5000;
 const DEFERRED_LOADING_START_TRESHOLD = DEFERRED_LOADING_SIZE * 2;
-const DEFERRED_LOADING_STOP_TRESHOLD = DEFERRED_LOADING_SIZE * 5;
-const DEFERRED_LOADING_SLEEP = 500;
+const DEFERRED_LOADING_STOP_TRESHOLD = 9999999999;
+const DEFERRED_LOADING_SLEEP = 250;
 
 
+var stats = {};
 var unprocessedLines = [];
 var linesToDisplay = [];
 var uploadDropzone;
@@ -110,6 +111,11 @@ var processFile = function(e) {
     loadMoreWhenMoreAvailable = false;
     filters = { enabled: false };
 
+    statUpdate('ok', 0);
+    statUpdate('nok', 0);
+    statUpdate('pend', 0);
+    statUpdate('all', 0); 
+
     Object.keys(FILTERABLES).forEach(filterable => {
         var filterableId = FILTERABLES[filterable];
         $(filterableId).find('*').remove();
@@ -131,7 +137,10 @@ var processFile = function(e) {
     var headerLine = unprocessedLines.shift();
     cellSeparator = headerLine.split(',').length > headerLine.split(';').length ? ',':';'; 
     
-    processHeader(headerLine);
+    statUpdate('all', unprocessedLines.length);
+    statUpdate('pend', unprocessedLines.length);
+    
+    readHeader(headerLine);
     startProcessingLines(true);
     startApiQueue();
     
@@ -155,6 +164,9 @@ var startProcessingLines = function(displayLines, loadAll){
         if(!line || !line.trim()) continue;
         
         line = line.split(cellSeparator);
+
+        if(!line.join('').trim()) continue;
+
         var lineObject = processLine(line);
 
         if(displayLines && i < ELEMENTS_PER_PAGE) newLines += generateLineHTML(lineObject);
@@ -176,14 +188,14 @@ var startProcessingLines = function(displayLines, loadAll){
     }, DEFERRED_LOADING_SLEEP);
 }
 
-var processHeader = function(line) {
+var readHeader = function(line) {
     line = line.split(cellSeparator);
     
     $('.table-container').html('<table><thead><tr></tr></thead><tbody></tbody></table>');
     var headerElement = $('.table-container').find('table thead tr');
 
     line.forEach(function(cell){
-        console.log("a-a-a-a-a-a-a-a: processHeader -> cell", cell);
+        console.log("a-a-a-a-a-a-a-a: readHeader -> cell", cell);
         
         if(VISIBLE_COLUMNS.includes(cell.toLowerCase())) {
             headerElement.append('<th>' + cell + '</th>');
@@ -215,6 +227,14 @@ var processLine = function(line) {
     lineObject._props = {
         id: idCounter
     }
+    
+    var categoryName = lineObject[TARGET_CATEGORY_COLUMN];
+    if(!categoryName || categoryName.toLowerCase() != TARGET_PRODUCT_NAME) {
+        lineObject._props.ignore = true;
+        statUpdate('pend', -1, true);
+    } else {
+        apiQueue.push(lineObject._props.id);
+    }
 
     uploadedData[idCounter] = lineObject;
     idCounter++;
@@ -239,12 +259,6 @@ var generateLineHTML = function(lineObject) {
     
     row += '</tr>';
     
-    var categoryName = lineObject[TARGET_CATEGORY_COLUMN];
-    if(!lineObject._props.status && categoryName 
-        && categoryName.toLowerCase() == TARGET_PRODUCT_NAME && !lineObject._props.ignore) {
-        apiQueue.push(lineObject._props.id);
-    }
-
     displayedLinesCount++;
     return row;
 }
@@ -293,7 +307,6 @@ var filterData = function(){
     // Stop the deferred loader & force load the rest of the data if any left
     $('.table-container').find('table tbody').html('');
     linesToDisplay = Object.keys(uploadedData);
-    apiQueue = [];
     loadingMore = false;
     loadMoreWhenMoreAvailable = linesToDisplay.length == 0;
     
@@ -313,7 +326,7 @@ var filterLine = function(id){
     var line = uploadedData[id];
     var valid = true;
 
-    if(line._props.status && filters.status && line._props.status != filters.status) valid = false;
+    if(filters.status && (line._props.ignore || (line._props.status && line._props.status != filters.status))) valid = false;
     if(filters.category && line.ExpenseCategoryName != filters.category) valid = false;
 
     return valid;
@@ -361,6 +374,9 @@ var processApiQueue = function(){
                 var val = parseInt(result["Prediction"]);
                 uploadedData[id]._props.val = val;
                 uploadedData[id]._props.status = val == 0 ?'nok':'ok';
+
+                statUpdate(uploadedData[id]._props.status, 1, true);
+                statUpdate('pend', -1, true);
                 
                 var row = $('.uploaded-data-line[data-id="' + id + '"]');
                 row.addClass('row-' + uploadedData[id]._props.status);
@@ -438,4 +454,12 @@ var showData = function(){
     $('.main-content-inner').find('div').removeAttr('selected');
     $('.data-container').attr('selected', '');
     $('.btn-filter').show();
+    $('.stats-table-container').show();
+}
+
+var statUpdate = function(name, value, increment){
+    if(increment) value += stats[name];
+
+    stats[name] = value;
+    $('#stat-' + name).html(value);
 }
