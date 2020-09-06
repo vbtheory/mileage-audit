@@ -137,9 +137,6 @@ var processFile = function(e) {
     var headerLine = unprocessedLines.shift();
     cellSeparator = headerLine.split(',').length > headerLine.split(';').length ? ',':';'; 
     
-    statUpdate('all', unprocessedLines.length);
-    statUpdate('pend', unprocessedLines.length);
-    
     readHeader(headerLine);
     startProcessingLines(true);
     startApiQueue();
@@ -168,7 +165,7 @@ var startProcessingLines = function(displayLines, loadAll){
         if(!line.join('').trim()) continue;
 
         var lineObject = processLine(line);
-
+        
         if(displayLines && i < ELEMENTS_PER_PAGE) newLines += generateLineHTML(lineObject);
         else linesToDisplay.push(lineObject._props.id);
     }
@@ -228,12 +225,14 @@ var processLine = function(line) {
         id: idCounter
     }
     
+    statUpdate('all',  1, true);
+
     var categoryName = lineObject[TARGET_CATEGORY_COLUMN];
     if(!categoryName || categoryName.toLowerCase() != TARGET_PRODUCT_NAME) {
         lineObject._props.ignore = true;
-        statUpdate('pend', -1, true);
     } else {
         apiQueue.push(lineObject._props.id);
+        statUpdate('pend', 1, true);    
     }
 
     uploadedData[idCounter] = lineObject;
